@@ -1,27 +1,39 @@
-# Full Project Code Mail : vatshayan007@gmail.com
-# If you get error then Mail : vatshayan007@gmail.com
 import cv2
+import os
 import numpy as np
-import face_recognitions
 
-imgModi = face_recognition.load_image_file('Images_Attendance/modi-image-for-InUth.jpg')
-imgModi = cv2.cvtColor(imgModi, cv2.COLOR_BGR2RGB)
-imgTest = face_recognition.load_image_file('Images_Attendance/narendra-modi.jpg')
-imgTest = cv2.cvtColor(imgTest, cv2.COLOR_BGR2RGB)
+dataset_path = "dataset"
 
-faceloc = face_recognition.face_locations(imgModi)[0]
-encodeModi = face_recognition.face_encodings(imgModi)[0]
-cv2.rectangle(imgModi, (faceloc[3], faceloc[0]), (faceloc[1], faceloc[2]), (155, 0, 255), 2)
+faces = []
+labels = []
+names = {}
+label_id = 0
 
-facelocTest = face_recognition.face_locations(imgTest)[0]
-encodeTest = face_recognition.face_encodings(imgTest)[1]
-cv2.rectangle(imgTest, (facelocTest[3], facelocTest[0]), (facelocTest[1], facelocTest[2]), (155, 0, 255), 2)
+face_detector = cv2.CascadeClassifier(
+    cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+)
 
-results = face_recognition.compare_faces([encodeModi], encodeTest)
-faceDis = face_recognition.face_distance([encodeModi], encodeTest)
-print(results, faceDis)
-cv2.putText(imgTest, f'{results} {round(faceDis[0],2)}', (50, 50), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 2)
+for person in os.listdir(dataset_path):
+    person_path = os.path.join(dataset_path, person)
 
-cv2.imshow('modi', imgModi)
-cv2.imshow('narendra-modi', imgTest)
-cv2.waitKeys(0)
+    if not os.path.isdir(person_path):
+        continue
+
+    names[label_id] = person
+
+    for img_name in os.listdir(person_path):
+        img_path = os.path.join(person_path, img_name)
+        img = cv2.imread(img_path, 0)
+
+        faces.append(img)
+        labels.append(label_id)
+
+    label_id += 1
+
+recognizer = cv2.face.LBPHFaceRecognizer_create()
+recognizer.train(faces, np.array(labels))
+
+recognizer.save("trainer.yml")
+np.save("labels.npy", names)
+
+print("✅ Training Complete")
